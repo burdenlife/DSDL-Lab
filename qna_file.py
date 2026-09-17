@@ -183,10 +183,150 @@ S3_QUESTIONS = [
     },
 
     {
-        'question': "[Hard] Create the field matches_engine_move. How many rows have matches_engine_move == True?",
+        'question': "[Hard] Create the field matches_engine_move. How many rows have matches_engine_move == True? Engine moves are: [ 'move_stockfish_1', 'move_stockfish_9', 'move_stockfish_15', 'move_maia2_2050', 'maia2_win_prob_2050', 'move_allie_2500',]",
         'explanation': 'Yes! \nHere is the solution I found: \nfiltered_df["matches_engine_move"] = filtered_df[bot_moves].eq(filtered_df["move_player"], axis=0).any(axis=1)\nBut there are many other solutions',
         'answer': 22210,
         'help_txt': 'Just Google or ChatGPT it bro...'
+    },
+    {
+        'question': "[Very Hard] For us to use categorical variables such as player_colour, we will need to encode it. Create new columns with the encoded values of both player_colour (white=1, black=0) and matches_engine_move (True=1, False=0). The headers should be named player_color_encoded and matches_engine_move_encoded"
     }
     
+]
+
+
+def check_df(df):
+    import numpy as np
+    try:
+        invalid_rows = df[(df['matches_engine_move_encoded'] == 0) & (df['matches_engine_move'] != False)]
+        assert len(invalid_rows) == 0
+
+        invalid_rows = df[(df['matches_engine_move_encoded'] == 1) & (df['matches_engine_move'] != True)]
+        assert len(invalid_rows) == 0
+    except KeyError:
+        print("Ensure that columns matches_engine_move_encoded and matches_engine_move exist!")
+        return
+    except AssertionError:
+        print("Wrong dataframe format detected. Ensure that column matches_engine_move_encoded is set to 1 when matches_engine_move is True and 0 otherwise.")
+        return
+    
+
+    try:
+        invalid_rows = df[(df['player_color_encoded'] == 0) & (df['player_color'] != 'black')]
+        assert len(invalid_rows) == 0
+
+        invalid_rows = df[(df['player_color_encoded'] == 1) & (df['player_color'] != 'white')]
+        assert len(invalid_rows) == 0
+    except KeyError:
+        print("Ensure that columns player_color_encoded and player_color exist!")
+        return
+    except AssertionError:
+        print("Wrong dataframe format detected. Ensure that column player_color_encoded is set to 1 when player_color is white and 0 otherwise.")
+        return
+
+    print("Yup! Now all the fields we want to pass the model are numeric and can be understood!")
+
+
+
+def check_train_test(X_train, X_test, y_train, y_test):
+    try:
+        assert list(X_train.columns) == list(X_test.columns) == ['player_color_encoded', 'player_elo', 'opponent_elo', 'half_move', 'move_thinking_time', 'clock_remaining_time', 'normalized_centipawn_loss', 'matches_engine_move_encoded']
+        assert len(X_train) == len(y_train) > len(X_test) == len(y_test)
+    except Exception  as e:
+        print(e)
+        print("Invalid input. Are you using the right dependent(Y) and independent(X) variables?")
+        return
+    print("Well done!")
+
+
+
+S4_QUESTIONS = [
+
+    {
+        'question': "[Intermediate] Oh no! Your code ran with an error! Based on the error message (and a Google search if you need it), \nwhich of the following best describes what is happening?",
+        'options': [
+            "The model stpped iterating before it was able to construct the perfect model",
+            "The model we chose is incompatable with the data we provided",
+            "The model is not able to identify which fields should be used for prediction",
+            "The model stopped iterating because we forgot to add an end condition.",
+            "Logistics Regression is not a good ML model"
+            
+        ],
+        'explanation': 'Yes! \nOur model ran too few iterations to converge to the ideal model',
+        'answer': 1,
+        'help_txt': 'Google/ChatGPT the error message'
+    },
+        
+]
+
+
+
+S5_QUESTIONS = [
+
+    {
+        'question': "[Intermediate] Lets try to understand our metrics. What does the `support` collumn in the report refer to?",
+        'options': [
+            "Confidence score",
+            "Weighted Average",
+            "Number of rows matching the category",
+            "Model Accuracy."
+            
+        ],
+        'explanation': 'Yes! \nSupport refers to number of events which supports the metric.',
+        'answer': 3,
+        'help_txt': 'What do we have thousands of?'
+    },
+
+    {
+        'question': "[Intermediate] If we were concerned only with False Positives(FP), which metric should we look at?",
+        'options': [
+            "F1 score",
+            "Calculate percentage of All Positives (prediction=True) that are FPs",
+            "Accuracy",
+            "Calculate percentage of All Records that are FPs."
+        ],
+        'explanation': 'Yes! \nFalse Positives occur when a move was not cheated but wrongly detected as cheated by the model.\nAs such it is concerning how much can we trust that a move detected as cheated by the model was actually cheated.\nSo it makes sense to only consider moves which the model detects as cheated.',
+        'answer': 2,
+        'help_txt': 'What are we worried about when we calculate FPs?'
+    },
+    {
+        'question': "[Intermediate] Our model has a True recall rate of 0.09. What does this mean?",
+        'options': [
+            "The model predicted is_cheated_move correctly 9% of the time",
+            "The model was able to correctly predict 9% of the cheated moves as cheated",
+            "The model only predicted 9% of the datapoints as cheated",
+            "The model was able to correctly predict 9% of the NOT cheated moves as NOT cheated."
+        ],
+        'explanation': 'Yes! \nRecall is concerned with `How many of the correct answer was preserved?`\nSince this is the recall rate of `True` values, the answer is 2.',
+        'answer': 2,
+        'help_txt': 'What are we worried about when we calculate FPs?'
+    },
+
+    {
+        'question': "[VERY EASY] The model is only able to detect 9% of the cheated moves. Is this satisfactory?",
+        'options': [
+            "Its satisfactory",
+            "It is NOT AT ALL satisfactory",
+            "Aiya wgt optimise the model? ORD loh...",
+            "Its too late to give up on this model! Lets try more test sets and give it another chance!"
+        ],
+        'explanation': 'Yes! \n9% recall rate is f*cking trash!',
+        'answer': 2,
+        'help_txt': "DON'T BE LAZY!"
+    },
+
+    {
+        'question': "[Intermediate] Yay! Our True recall has shot up to 67%. But we also see that our overall accuracy has fallen from 75% to 64%. Is this model better than our previous model? Why?",
+        'options': [
+            "It is better. Since we did more work in transforming the model, the results have to be better!",
+            "It is better. A lazy model is functionally useless, since it is almost equivalent to blindly guessing False for all values.",
+            "It is worse. Recall is a subset of accuracy. Therefore, a drop in accuracy is more telling than the increase in recall.",
+            "It is better. The increase in recall is bigger than an increase in accuracy. Bigger number better therefore recall is better."
+        ],
+        'explanation': 'Yes! \nWhile 4 is true most of the time, 2 is more indicative of an improvement in the model performance.',
+        'answer': 2,
+        'help_txt': "Which is more useful? A model which meta-games telling you False all the time or a model that actively tries to predict but gets it wrong more?"
+    },
+    
+        
 ]
